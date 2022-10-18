@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 /******************************************************************************
 **  Constants & Macros
@@ -275,6 +276,16 @@ void upio_cleanup(void)
 #endif
 }
 
+static void hw_reset(bool reset) {
+  unsigned buf[8] = { 8 * 4, 0, 0x38041, 8, 8, 128, 0, 0};
+  buf[6] = reset ? 0 : 1;
+  int fd = open("/dev/vcio", 0);
+  if (fd >= 0) {
+    ioctl(fd, _IOWR(100, 0, char *), buf);
+    close(fd);
+  }
+}
+
 /*******************************************************************************
 **
 ** Function        upio_set_bluetooth_power
@@ -297,10 +308,12 @@ int upio_set_bluetooth_power(int on)
     {
         case UPIO_BT_POWER_OFF:
             buffer = '0';
+	    hw_reset(true);
             break;
 
         case UPIO_BT_POWER_ON:
             buffer = '1';
+	    hw_reset(false);
             break;
     }
 
